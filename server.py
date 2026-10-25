@@ -204,8 +204,8 @@ def download_playlist(url, output_dir, output_format):
         configure_ssl_environment(child_env)
         proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                 text=True, bufsize=1, env=child_env)
-        item_pattern = re.compile(r"Downloading item (\\d+) of (\\d+)", re.I)
-        percent_pattern = re.compile(r"(\\d{1,3}(?:\\.\\d+)?)%")
+        item_pattern = re.compile(r"Downloading item (\d+) of (\d+)", re.I)
+        percent_pattern = re.compile(r"(\d{1,3}(?:\.\d+)?)%")
         for raw in proc.stdout:
             line = raw.strip()
             if not line:
@@ -224,7 +224,7 @@ def download_playlist(url, output_dir, output_format):
                     pct = int(((max((item or 1) - 1, 0) + file_pct / 100) / total) * 100)
                 else:
                     pct = int(file_pct)
-            if line.lower().endswith((".mp4", ".mp3")) and ("/" in line or "\\\\" in line):
+            if line.lower().endswith((".mp4", ".mp3")) and ("/" in line or "\\" in line):
                 saved.append(line)
             update(message=line[:240], percent=min(pct, 99), playlist_item=item,
                    playlist_total=total, saved_count=len(saved), saved_paths=saved[-20:],
@@ -236,7 +236,7 @@ def download_playlist(url, output_dir, output_format):
             update(status=status, message=msg, percent=100, saved_count=len(saved),
                    saved_paths=saved[-20:], logs=recent, error=None)
         else:
-            detail = "\\n".join(recent[-20:]) or f"yt-dlp exited with code {return_code}"
+            detail = "\n".join(recent[-20:]) or f"yt-dlp exited with code {return_code}"
             update(status="error", message="Download stopped with an error.", error=detail,
                    percent=pct, saved_count=len(saved), saved_paths=saved[-20:], logs=recent)
     except FileNotFoundError as exc:
