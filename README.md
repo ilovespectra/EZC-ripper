@@ -19,7 +19,7 @@ The helper listens only on `127.0.0.1`; it is not deployed to a public server. T
 - Offers MP4 video and MP3 audio output, keeping playlist order in filenames. MP3 conversion uses the bundled FFmpeg.
 - Continues past individual item failures and displays downloader output.
 - Uses yt-dlp's Node runtime and GitHub EJS components for YouTube's JavaScript challenges. This requires internet access.
-- Uses macOS's system certificate bundle for verified HTTPS requests, avoiding failures from an unconfigured Python certificate file. TLS verification stays enabled.
+- Uses a configured CA bundle when it contains trusted roots; if it is missing or unusable, it falls back to macOS's system certificate bundle. TLS verification stays enabled.
 - Uses no account cookies, proxies, or access-control workarounds. If YouTube refuses a video, the page displays the downloader error; the UI cannot override that decision.
 
 Playback in a browser does not guarantee that a separate downloader can retrieve the video. This app does not sign into YouTube.
