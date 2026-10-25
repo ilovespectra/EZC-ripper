@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playlist Media Saver</title>
+<style>
+:root{color-scheme:light;--ink:#17251f;--muted:#63716a;--line:#dce5df;--green:#176b48;--pale:#f1f7f3;--red:#9d312d}
+*{box-sizing:border-box}body{margin:0;background:#f5f7f5;color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{width:min(760px,calc(100% - 32px));margin:7vh auto;background:white;border:1px solid var(--line);border-radius:18px;padding:clamp(22px,5vw,42px);box-shadow:0 14px 50px #162b1d12}
+h1{font-size:clamp(28px,5vw,38px);line-height:1.1;margin:0 0 10px;letter-spacing:-.03em}.intro{color:var(--muted);margin:0 0 26px}
+label{display:block;font-weight:650;margin:18px 0 7px}input,select{width:100%;font:inherit;border:1px solid #b9c8bf;border-radius:10px;padding:12px 13px;color:var(--ink);background:white}input:focus,select:focus{outline:3px solid #176b4824;border-color:var(--green)}
+.hint{font-size:13px;color:var(--muted);margin:6px 0 0}.row{display:flex;gap:12px;align-items:center;margin-top:22px}.button{appearance:none;border:0;border-radius:10px;background:var(--green);color:white;padding:12px 18px;font:inherit;font-weight:700;cursor:pointer}.button:disabled{opacity:.48;cursor:not-allowed}.helper{font-size:13px;color:var(--muted)}
+.badge{display:inline-flex;gap:8px;align-items:center;padding:7px 11px;background:var(--pale);border:1px solid var(--line);border-radius:99px;font-size:13px;color:var(--green)}.dot{width:8px;height:8px;border-radius:50%;background:#28a067}.badge.missing{background:#fff7e7;color:#765319}.badge.missing .dot{background:#d69b24}
+#status{margin-top:24px;border:1px solid var(--line);border-radius:12px;padding:16px;background:#fbfcfb;display:none}#status.show{display:block}.status-title{font-weight:700}.bar{height:9px;border-radius:20px;background:#e7eee9;overflow:hidden;margin:12px 0 7px}.bar>span{display:block;height:100%;width:0;background:linear-gradient(90deg,#23865b,#55b47c);transition:width .3s}.meta{font-size:13px;color:var(--muted)}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto;font:12px/1.45 ui-monospace,SFMono-Regular,monospace;color:#39483f;background:#f3f6f4;padding:12px;border-radius:8px;margin:12px 0 0}#error{color:var(--red)}.foot{border-top:1px solid var(--line);margin-top:28px;padding-top:18px;color:var(--muted);font-size:13px}.foot strong{color:var(--ink)}
+@media(max-width:520px){.row{align-items:stretch;flex-direction:column}.button{width:100%}}
+</style>
+</head>
+<body>
+<main>
+  <div id="health" class="badge"><span class="dot"></span><span>Checking local setup…</span></div>
+  <h1 style="margin-top:18px">Save a playlist</h1>
+  <p class="intro">Paste a YouTube playlist URL and choose MP4 video or MP3 audio.</p>
+  <form id="form">
+    <label for="url">YouTube playlist URL</label>
+    <input id="url" type="url" placeholder="https://www.youtube.com/playlist?list=…" required autocomplete="url">
+    <p class="hint">Use a playlist link containing <code>list=</code>. A video link without a playlist ID is rejected.</p>
+    <label for="format">Save as</label>
+    <select id="format">
+      <option value="mp4">MP4 video</option>
+      <option value="mp3">MP3 audio</option>
+    </select>
+    <p class="hint" id="formatHint">Saves the video with audio in MP4 format.</p>
+    <label for="folder">Save folder</label>
+    <input id="folder" type="text" spellcheck="false">
+    <p class="hint">Default: Downloads / Recovered YouTube Music. You can change the path.</p>
+    <div class="row"><button id="submit" class="button" type="submit">Download as MP4</button><span class="helper">One playlist at a time</span></div>
+  </form>
+  <section id="status" aria-live="polite">
+    <div id="statusTitle" class="status-title">Ready</div>
+    <div class="bar"><span id="barFill"></span></div>
+    <div id="meta" class="meta"></div>
+    <div id="error" class="meta"></div>
+    <pre id="log" hidden></pre>
+  </section>
+  <div class="foot"><strong>Runs on this Mac.</strong> The page talks only to its local helper. It does not sign in or work around YouTube access restrictions; if YouTube rejects retrieval, the error will be shown here.</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const form=$('form'), button=$('submit'), statusBox=$('status');
+let pollTimer=null;
+function setStatus(data){
+  statusBox.classList.add('show');
+  $('statusTitle').textContent=data.message||data.status||'Working…';
+  $('barFill').style.width=Math.max(0,Math.min(100,Number(data.percent)||0))+'%';
+  const item=data.playlist_item&&data.playlist_total?`Item ${data.playlist_item} of ${data.playlist_total}`:'';
+  const saved=Number(data.saved_count)||0;
+  $('meta').textContent=[item,saved?`${saved} file${saved===1?'':'s'} saved`:'' ,data.save_folder||''].filter(Boolean).join(' · ');
+  $('error').textContent=data.error||'';
+  const lines=Array.isArray(data.logs)?data.logs:[];
+  $('log').textContent=lines.join('\n');
+  $('log').hidden=lines.length===0;
+  const busy=data.status==='downloading';
+  button.disabled=busy||!ready;
+  button.textContent=busy?'Downloading playlist…':`Download as ${$('format').value.toUpperCase()}`;
+  if(busy){if(!pollTimer)pollTimer=setInterval(refresh,900)}else if(pollTimer){clearInterval(pollTimer);pollTimer=null}
+}
+let ready=false;
+async function refresh(){
+  try{
+    const r=await fetch('/api/status',{cache:'no-store'}),d=await r.json();
+    if(!$('folder').value)$('folder').value=d.default_output||'';
+    const missing=Object.entries(d.tools||{}).filter(([,v])=>!v).map(([k])=>k);
+    ready=missing.length===0;
+    const badge=$('health');
+    badge.classList.toggle('missing',!ready);
+    badge.innerHTML=`<span class="dot"></span><span>${ready?'Local tools ready':'Setup needed: '+missing.join(', ')}</span>`;
+    if(!ready){$('error').textContent='Run Setup.command once, then refresh this page.';statusBox.classList.add('show')}
+    setStatus(d);
+  }catch(e){ready=false;$('health').classList.add('missing');$('health').lastElementChild.textContent='Local helper disconnected';button.disabled=true}
+}
+form.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const url=$('url').value.trim(),folder=$('folder').value.trim(),format=$('format').value;
+  button.disabled=true;statusBox.classList.add('show');$('statusTitle').textContent='Starting playlist…';$('error').textContent='';
+  try{
+    const r=await fetch('/api/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,folder,format})});
+    const d=await r.json();
+    if(!r.ok){$('statusTitle').textContent='Could not start download';$('error').textContent=d.error+(d.setup?' '+d.setup:'');button.disabled=!ready;return}
+    setStatus({...d,message:'Playlist queued',save_folder:d.save_folder});
+  }catch(err){$('statusTitle').textContent='Local helper error';$('error').textContent=String(err);button.disabled=!ready}
+});
+$('format').addEventListener('change',()=>{
+  const format=$('format').value;
+  $('formatHint').textContent=format==='mp3'?'Extracts audio and saves it as an MP3 file.':'Saves the video with audio in MP4 format.';
+  if(ready&&button.textContent!=='Downloading playlist…')button.textContent=`Download as ${format.toUpperCase()}`;
+});
+refresh();
+</script>
+</body>
+</html>
