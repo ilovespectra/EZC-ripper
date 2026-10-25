@@ -49,7 +49,7 @@ def allowed_youtube_playlist(url):
     host = (parsed.hostname or "").lower()
     valid_host = host in {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"}
     playlist_id = parse_qs(parsed.query).get("list", [""])[0]
-    return parsed.scheme == "https" and host in valid_host and bool(playlist_id)
+    return parsed.scheme == "https" and valid_host and bool(playlist_id)
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "LocalPlaylistSaver/1.0"
