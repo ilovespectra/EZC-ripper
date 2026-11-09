@@ -4,7 +4,7 @@
 
 EZC Ripper is separate from [EZC Cloud Transfer](https://ezc.kolektivkrog.si/), which transfers Google Drive and Google Photos files, and from the [older Python-based EZC project](https://github.com/ilovespectra/EZC). Those are different products; their downloads are not EZC Ripper installers.
 
-**Current repository:** [playlist-media-saver on GitHub](https://github.com/ilovespectra/playlist-media-saver) (private). **Native-app releases:** [GitHub Releases](https://github.com/ilovespectra/playlist-media-saver/releases). There is no public EZC Ripper installer published yet.
+**Current repository:** [playlist-media-saver on GitHub](https://github.com/ilovespectra/playlist-media-saver) (public source). **Native-app releases:** [GitHub Releases](https://github.com/ilovespectra/playlist-media-saver/releases). There is no public EZC Ripper installer published yet.
 
 ## Run from source
 
