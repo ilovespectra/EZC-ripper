@@ -76,7 +76,7 @@
     .button:hover { background: #d2ffac; color: #12200f; transform: translate(-1px, -1px); box-shadow: 5px 5px 0 #344a29; }
     .button[hidden] { display: none; }
     .quiet-link { color: var(--muted); font-size: 12px; }
-    .download-count { margin-top: 11px !important; color: var(--amber) !important; font-size: 12px; }
+    .download-count { display: block; margin-top: 11px !important; color: var(--amber) !important; font-size: 12px; text-decoration: none; }
     .differences { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
     .differences .card { padding: 20px; }
     .differences h2 { font-size: 15px; }
@@ -143,7 +143,7 @@
           <p class="card-kicker">Release status</p>
           <h2 id="download-title">Get EZC Ripper</h2>
           <p id="release-status" class="status-line" role="status" aria-live="polite"><span class="status-dot" aria-hidden="true"></span><span>Checking for a public Mac installer…</span></p>
-          <p id="release-count" class="download-count" hidden></p>
+          <a id="release-count" class="download-count" href="https://github.com/ilovespectra/playlist-media-saver/releases" target="_blank" rel="noopener noreferrer">Checking GitHub release downloads…</a>
           <div class="actions">
             <a id="download-link" class="button" href="#download" hidden>Download the Mac app</a>
             <a class="quiet-link" href="https://github.com/ilovespectra/playlist-media-saver/releases">Release page</a>
@@ -186,9 +186,36 @@
       const link = document.querySelector('#download-link');
       const count = document.querySelector('#release-count');
       const repoApi = `https://api.github.com/repos/${owner}/${repo}`;
-      const releasesApi = `${repoApi}/releases/latest`;
+      const latestReleaseApi = `${repoApi}/releases/latest`;
+      const releasesPage = `https://github.com/${owner}/${repo}/releases`;
+      count.href = releasesPage;
       function setStatus(message) { status.textContent = message; }
       function formatCount(n) { return new Intl.NumberFormat().format(Number(n) || 0); }
+
+      async function loadDownloadCount() {
+        try {
+          let total = 0;
+          for (let page = 1; ; page += 1) {
+            const response = await fetch(`${repoApi}/releases?per_page=100&page=${page}`, { headers: { Accept: 'application/vnd.github+json' } });
+            if (!response.ok) throw new Error(`Release list returned ${response.status}.`);
+            const releases = await response.json();
+            if (!Array.isArray(releases)) throw new Error('Invalid release list.');
+            for (const release of releases) {
+              if (release.draft || !Array.isArray(release.assets)) continue;
+              for (const asset of release.assets) {
+                if (!['.dmg', '.pkg', '.zip'].some(suffix => (asset.name || '').toLowerCase().endsWith(suffix))) continue;
+                if (!Number.isSafeInteger(asset.download_count) || asset.download_count < 0) throw new Error('Invalid installer download total.');
+                total += asset.download_count;
+              }
+            }
+            if (releases.length < 100) break;
+          }
+          count.textContent = `${formatCount(total)} installer downloads across published releases`;
+        } catch (error) {
+          count.textContent = 'Installer download count unavailable — view GitHub releases';
+          console.warn('EZC Ripper download count failed:', error);
+        }
+      }
 
       async function loadRelease() {
         try {
@@ -199,7 +226,7 @@
           }
           if (!repoResponse.ok) throw new Error(`Repository check returned ${repoResponse.status}.`);
 
-          const releaseResponse = await fetch(releasesApi, { headers: { Accept: 'application/vnd.github+json' } });
+          const releaseResponse = await fetch(latestReleaseApi, { headers: { Accept: 'application/vnd.github+json' } });
           if (releaseResponse.status === 404) {
             setStatus('No native-app release has been published yet.');
             return;
@@ -219,14 +246,13 @@
           link.textContent = `Download EZC Ripper ${release.tag_name || ''}`.trim();
           link.hidden = false;
           setStatus(`Latest Mac installer: ${dmg.name}`);
-          count.textContent = `${formatCount(dmg.download_count)} downloads · ${release.name || release.tag_name || 'latest release'}`;
-          count.hidden = false;
         } catch (error) {
           setStatus('Could not check releases just now. Use the GitHub release page to check again.');
           console.warn('EZC Ripper release check failed:', error);
         }
       }
 
+      void loadDownloadCount();
       loadRelease();
     })();
   </script>
