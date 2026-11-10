@@ -2,9 +2,9 @@
 
 **EZC Ripper** is a standalone Mac desktop app for saving one YouTube video or a whole playlist as MP4 video or MP3 audio. It puts downloads in a local queue, lets you choose a save folder, and keeps progress and cancellation controls in the app. It runs on your Mac; it is not a cloud file-transfer service.
 
-EZC Ripper is separate from [EZC Cloud Transfer](https://ezc.kolektivkrog.si/), which transfers Google Drive and Google Photos files, and from the [older Python-based EZC project](https://github.com/ilovespectra/EZC). Those are different products; their downloads are not EZC Ripper installers.
+EZC Ripper is separate from EZC Cloud Transfer, which transfers Google Drive and Google Photos files, and from the [older Python-based EZC project](https://github.com/ilovespectra/EZC). Those are different products; their downloads are not EZC Ripper installers.
 
-**Current repository:** [playlist-media-saver on GitHub](https://github.com/ilovespectra/playlist-media-saver) (public source). **Native-app releases:** [GitHub Releases](https://github.com/ilovespectra/playlist-media-saver/releases). There is no public EZC Ripper installer published yet.
+**Canonical repository:** [EZC Ripper on GitHub](https://github.com/ilovespectra/EZC-ripper) (public). **Landing page:** [ezc.kolektivkrog.si](https://ezc.kolektivkrog.si/). **macOS releases:** [GitHub Releases](https://github.com/ilovespectra/EZC-ripper/releases).
 
 ## Run from source
 
