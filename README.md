@@ -32,8 +32,12 @@ On an Apple-silicon Mac with Python 3.11+ and Node.js 22+:
 
 ## Developer Console
 
-From the EZC source folder, run `npm run dev:console`. Choose `patch`, `minor`,
-`major`, or `current`; after confirmation it runs the test suite, updates the
-version and lockfile, and builds the Apple-silicon DMG. Failed builds restore
-the prior version metadata. This console builds locally; the app does not yet
-have a configured public release feed for in-app updates.
+From the complete EZC native-app source folder, run:
+
+```sh
+npm run dev:console
+```
+
+This invokes the `dev:console` script in `package.json` (`node tools/dev-console.cjs`). Choose `patch`, `minor`, `major`, or `current`; after confirmation it runs the test suite, updates the version and lockfile, and builds the Apple-silicon DMG. Failed builds restore the prior version metadata.
+
+**Availability:** the current public `main` branch does not yet contain the native app's `package.json` or `tools/dev-console.cjs`; this command is therefore not runnable from a clone of this branch until that source is added. The console builds locally; the app does not yet have a configured public release feed for in-app updates.
