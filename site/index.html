@@ -77,6 +77,7 @@
     .button[hidden] { display: none; }
     .quiet-link { color: var(--muted); font-size: 12px; }
     .download-count { display: block; margin-top: 11px !important; color: var(--amber) !important; font-size: 12px; text-decoration: none; }
+    .download-count-note { margin: 7px 0 0 !important; color: var(--muted) !important; font-size: 11px; }
     .differences { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
     .differences .card { padding: 20px; }
     .differences h2 { font-size: 15px; }
@@ -144,6 +145,7 @@
           <h2 id="download-title">Get EZC Ripper</h2>
           <p id="release-status" class="status-line" role="status" aria-live="polite"><span class="status-dot" aria-hidden="true"></span><span>Checking for a public Mac installer…</span></p>
           <a id="release-count" class="download-count" href="https://github.com/ilovespectra/EZC-ripper/releases" target="_blank" rel="noopener noreferrer">Checking GitHub release downloads…</a>
+          <p class="download-count-note">GitHub asset downloads, not unique users or verified installs.</p>
           <div class="actions">
             <a id="download-link" class="button" href="#download" hidden>Download the Mac app</a>
             <a class="quiet-link" href="https://github.com/ilovespectra/EZC-ripper/releases">Release page</a>
@@ -191,8 +193,29 @@
       count.href = releasesPage;
       function setStatus(message) { status.textContent = message; }
       function formatCount(n) { return new Intl.NumberFormat().format(Number(n) || 0); }
+      const countCacheKey = `ezc-ripper:${owner}:${repo}:installer-downloads:v1`;
+      const countCacheTtlMs = 5 * 60 * 1000;
+      function readCountCache() {
+        try {
+          const cached = JSON.parse(localStorage.getItem(countCacheKey) || 'null');
+          if (cached && Number.isSafeInteger(cached.total) && cached.total >= 0
+              && Number.isFinite(cached.savedAt) && cached.savedAt > 0 && cached.savedAt <= Date.now()) return cached;
+        } catch {}
+        return null;
+      }
+      function cacheAge(savedAt) {
+        const minutes = Math.max(0, Math.floor((Date.now() - savedAt) / 60000));
+        return minutes < 1 ? 'under a minute' : `${minutes} min`;
+      }
 
       async function loadDownloadCount() {
+        const cached = readCountCache();
+        if (cached && Date.now() - cached.savedAt < countCacheTtlMs) {
+          count.textContent = `${formatCount(cached.total)} installer downloads across published releases`;
+          return;
+        }
+        if (cached) count.textContent = `${formatCount(cached.total)} installer downloads · refreshing`;
+
         try {
           let total = 0;
           for (let page = 1; ; page += 1) {
@@ -206,13 +229,17 @@
                 if (!['.dmg', '.pkg', '.zip'].some(suffix => (asset.name || '').toLowerCase().endsWith(suffix))) continue;
                 if (!Number.isSafeInteger(asset.download_count) || asset.download_count < 0) throw new Error('Invalid installer download total.');
                 total += asset.download_count;
+                if (!Number.isSafeInteger(total)) throw new Error('Installer download total is too large.');
               }
             }
             if (releases.length < 100) break;
           }
+          try { localStorage.setItem(countCacheKey, JSON.stringify({ total, savedAt: Date.now() })); } catch {}
           count.textContent = `${formatCount(total)} installer downloads across published releases`;
         } catch (error) {
-          count.textContent = 'Installer download count unavailable — view GitHub releases';
+          count.textContent = cached
+            ? `${formatCount(cached.total)} installer downloads · last checked ${cacheAge(cached.savedAt)} ago`
+            : 'Installer download count unavailable — view GitHub releases';
           console.warn('EZC Ripper download count failed:', error);
         }
       }
